@@ -464,6 +464,65 @@ t('节次轴与课程卡片同一原点（第一节前的空档有占位）', ()
   if (Math.abs(evTop - expected) > 1) throw new Error('卡片 top ' + evTop + 'px 与节次轴原点 ' + expected.toFixed(1) + 'px 不对齐');
 });
 
+t('课程卡片四行排版：课名 / 地点 / 起 / 止（卡面能看到结束时间）', () => {
+  const d = makeDom();
+  const win = d.window, doc = win.document;
+  const C = win.Core;
+  const base = C.emptyData();
+  base.settings.termStart = C.mondayOf(C.today());
+  base.settings.timeTable = [
+    { start: '08:00', end: '08:45' },
+    { start: '08:50', end: '09:35' },
+    { start: '09:50', end: '10:35' }
+  ];
+  base.courses = [{
+    id: 'c1', name: '高等数学A', teacher: '', location: '教一101', color: '#4c6ef5',
+    sessions: [{ day: 1, startNode: 1, endNode: 2, startWeek: 1, endWeek: 20, weekType: 'all', location: '教一101' }],
+    overrides: []
+  }];
+  win.__ttDebug(base);
+
+  const card = doc.querySelector('#weekWrap .ev');
+  if (!card) throw new Error('没渲染出课程卡片');
+  if (card.classList.contains('short') || card.classList.contains('tiny'))
+    throw new Error('两节课的块不该被判成矮块/窄块：' + card.className);
+  if (card.querySelector('b').textContent !== '高等数学A') throw new Error('第 1 行不是课名');
+  const loc = card.querySelector('i.loc');
+  if (!loc || loc.textContent.indexOf('教一101') < 0) throw new Error('第 2 行地点缺失：' + (loc && loc.textContent));
+  const t1 = card.querySelector('i.t1'), t2 = card.querySelector('i.t2');
+  if (!t1 || t1.textContent !== '08:00') throw new Error('第 3 行起始时间不对：' + (t1 && t1.textContent));
+  if (!t2 || t2.textContent !== '09:35') throw new Error('第 4 行结束时间不对：' + (t2 && t2.textContent));
+  if (card.textContent.indexOf('09:35') < 0) throw new Error('卡面看不到结束时间');
+});
+
+t('单节课（矮块）：地点让位，起止仍是两行小字，结束时间可见', () => {
+  const d = makeDom();
+  const win = d.window, doc = win.document;
+  const C = win.Core;
+  const base = C.emptyData();
+  base.settings.termStart = C.mondayOf(C.today());
+  base.settings.timeTable = [
+    { start: '08:00', end: '08:45' },
+    { start: '08:50', end: '09:35' },
+    { start: '09:50', end: '10:35' }
+  ];
+  base.courses = [{
+    id: 'c1', name: '体育', teacher: '', location: '体育馆', color: '#12b886',
+    sessions: [{ day: 1, startNode: 3, endNode: 3, startWeek: 1, endWeek: 20, weekType: 'all', location: '体育馆' }],
+    overrides: []
+  }];
+  win.__ttDebug(base);
+
+  const card = doc.querySelector('#weekWrap .ev');
+  if (!card) throw new Error('没渲染出课程卡片');
+  if (!card.classList.contains('short')) throw new Error('单节课应判成矮块（short）：' + card.className);
+  if (card.querySelector('i.loc')) throw new Error('矮块放不下地点，不该再渲染地点行');
+  const t1 = card.querySelector('i.t1'), t2 = card.querySelector('i.t2');
+  if (!t1 || t1.textContent !== '09:50') throw new Error('起始时间行不对：' + (t1 && t1.textContent));
+  if (!t2 || t2.textContent !== '10:35') throw new Error('结束时间行不对：' + (t2 && t2.textContent));
+  if (card.textContent.indexOf('10:35') < 0) throw new Error('卡面看不到结束时间');
+});
+
 
 t('每门课程使用自己的颜色', () => {
   const d = makeDom();

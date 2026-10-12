@@ -1,5 +1,5 @@
 /* sw.js — 离线缓存。改完代码后把 VERSION 加 1，用户下次打开即更新 */
-var VERSION = 'tt-v14';
+var VERSION = 'tt-v15';
 var ASSETS = [
   './', './index.html', './app.js', './core.js',
   './manifest.webmanifest', './icon-192.png', './icon-512.png',

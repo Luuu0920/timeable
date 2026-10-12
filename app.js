@@ -285,9 +285,13 @@
         if (it.isMoved || it.isMakeup) cls += ' moved';
         // 待办：已完成时整块变淡 + 删除线
         if (it.type === 'todo' && it.done) cls += ' done';
-        // 分栏过多或时间太短时，卡片很窄，只显示课程名
+        // 分栏过多（重叠）或极矮 → tiny（只留课名）；
+        // 矮块（单节课）放不下「课名/地点/起/止」四行 → short（地点让位，起止仍是两行小字）
         var colPx = (o.cols > 1 ? (340 / 7) / o.cols : 340 / 7);
-        if (o.cols >= 2 || hgt < 34) cls += ' tiny';
+        var narrow = o.cols >= 2 || hgt < 34;
+        var shortBlk = !narrow && hgt < 56;
+        if (narrow) cls += ' tiny';
+        else if (shortBlk) cls += ' short';
         // 每门课程用自己的颜色（考试/健身/活动/待办仍按类型配色）
         var bg = (it.type === 'course' || !it.type) && it.color
           ? 'background:' + it.color + ';'
@@ -297,13 +301,17 @@
         var tick = it.type === 'todo'
           ? '<em class="todoBox' + (it.done ? ' on' : '') + '" data-tick="1"></em>'
           : '';
+        // 卡面信息层级：课名（第1行）/ 地点（第2行）/ 起·止（第3、4行，更小字）。
+        // 矮块放不下四行 → 地点让位（起止仍是两行小字）；极窄/极矮只留课名。
+        var inner = tick + '<b>' + esc(it.name) + '</b>';
+        if (it.type !== 'todo' && !narrow) {
+          if (!shortBlk && it.location) inner += '<i class="loc">' + esc(shortLoc(it.location)) + '</i>';
+          inner += '<i class="t1">' + it.start + '</i><i class="t2">' + it.end + '</i>';
+        }
         c += '<div class="ev ' + cls + '" data-kind="' + it.kind + '" data-id="' + it.id + '" ' +
           'data-date="' + key + '" style="' + bg + 'top:' + top.toFixed(1) + 'px;height:' + hgt.toFixed(1) +
           'px;left:calc(' + leftPct.toFixed(1) + '% + 1px);right:auto;width:calc(' + wPct.toFixed(1) + '% - 2px)">' +
-          tick +
-          '<b>' + esc(it.name) + '</b>' +
-          (it.type === 'todo' ? '' : '<i>' + it.start + '-' + it.end + '</i>') +
-          (it.location ? '<i>' + esc(shortLoc(it.location)) + '</i>' : '') +
+          inner +
           '</div>';
       });
       c += '</div>';

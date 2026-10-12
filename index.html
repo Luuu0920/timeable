@@ -112,7 +112,13 @@ header{
 .ev b{display:block;font-weight:600;font-size:11px;overflow:hidden;max-height:2.4em}
 .ev i{font-style:normal;font-size:10px;opacity:.92;display:block;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* 极窄卡片里只留课程名，时间地点让位 */
+/* 卡面字号层级：课名(11px) > 地点(9.5px) > 起止时间(8.5px) */
+.ev i.loc{font-size:9.5px}
+.ev i.t1,.ev i.t2{font-size:8.5px;opacity:.95}
+/* 矮块（单节课）放不下四行 → 地点让位、课名压成一行（超长省略号），保住起止两行小字 */
+.ev.short{padding:2px 4px}
+.ev.short b{max-height:none;white-space:nowrap;text-overflow:ellipsis}
+/* 极窄卡片（重叠分栏）里只留课程名，时间地点让位 */
 .ev.tiny{padding:2px 3px;font-size:10px}
 .ev.tiny i{display:none}
 .ev.tiny b{font-size:10px}
