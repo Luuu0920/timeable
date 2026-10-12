@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#4c6ef5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="课表日历">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>课表日历</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --line:#e5e7eb; --line2:#eef0f3;
+  --text:#1a1d21; --muted:#6b7280; --muted2:#9aa1ab;
+  --brand:#4c6ef5;
+  --c-course:#4c6ef5; --c-gym:#12b886; --c-exam:#e03131; --c-activity:#f59f00; --c-todo:#ae3ec9;
+  --r:10px; --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,Roboto,sans-serif;
+  background:var(--bg); color:var(--text); overscroll-behavior-y:none;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none;padding:0}
+input,select,textarea{
+  background:#fff;border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;width:100%;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+a{color:var(--brand)}
+
+/* ---------- 布局 ---------- */
+#app{padding-bottom:calc(62px + var(--sab))}
+.page{display:none}
+.page.on{display:block}
+
+/* ---------- 顶栏 ---------- */
+header{
+  position:sticky;top:0;z-index:30;background:var(--card);
+  border-bottom:1px solid var(--line);padding-top:var(--sat);
+}
+.hd{display:flex;align-items:center;gap:8px;padding:8px 12px;min-height:48px}
+.hd h1{font-size:16px;margin:0;font-weight:600;flex:1;text-align:center}
+.iconbtn{
+  width:34px;height:34px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:16px;color:var(--muted);flex:0 0 auto;
+}
+.iconbtn:active{background:var(--line2)}
+.termbar{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:0 12px 8px;font-size:12px;color:var(--muted);
+}
+.chip{
+  padding:2px 9px;border-radius:20px;background:var(--line2);
+  font-size:12px;color:var(--muted);white-space:nowrap;
+}
+.chip.on{background:var(--brand);color:#fff}
+.modebar{display:flex;gap:6px;padding:0 12px 8px}
+.modebar button{
+  flex:1;padding:6px 0;border-radius:8px;font-size:13px;
+  color:var(--muted);background:var(--line2);
+}
+.modebar button.on{background:var(--brand);color:#fff;font-weight:500}
+
+/* ---------- 考试倒计时横幅 ---------- */
+#examBanner{padding:0 12px 8px}
+.examcard{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;
+  border-radius:var(--r);background:#fff5f5;border:1px solid #ffc9c9;
+}
+.examcard .nm{flex:1;font-weight:600;color:#c92a2a;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.examcard .when{font-size:12px;color:#e8590c;white-space:nowrap}
+.examcard .cd{
+  background:var(--c-exam);color:#fff;border-radius:20px;padding:3px 10px;
+  font-size:12px;font-weight:600;white-space:nowrap;
+}
+
+/* ---------- 周视图 ---------- */
+#weekWrap{background:var(--card);margin:0 0 10px;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line)}
+.wk-head{display:grid;grid-template-columns:40px repeat(7,1fr);border-bottom:1px solid var(--line);
+  position:sticky;top:calc(48px + var(--sat));z-index:20;background:var(--card)}
+.wk-head>div{padding:6px 0;text-align:center;font-size:11px;color:var(--muted)}
+.wk-head .wd{font-weight:600;font-size:12px;color:var(--text)}
+.wk-head .dd{font-size:11px}
+.wk-head>div.today{color:var(--brand)}
+.wk-head>div.today .dd{background:var(--brand);color:#fff;border-radius:50%;
+  width:20px;height:20px;line-height:20px;margin:1px auto 0}
+.wk-head>div.we{background:#fcfcfd}
+.wk-body{display:grid;grid-template-columns:52px repeat(7,1fr);position:relative}
+.hours{grid-column:1;position:relative;padding-top:0}
+.hour{position:relative;border-bottom:1px dashed var(--line2)}
+/* 节次标签：上行「第N节」、下行该节开始时间，右对齐避免被裁 */
+.hour span{position:absolute;top:1px;right:4px;font-size:9.5px;color:var(--muted);
+  background:var(--card);padding:0 2px;letter-spacing:-.3px;white-space:nowrap}
+.hour em{position:absolute;top:12px;right:4px;font-style:normal;font-size:9.5px;
+  color:var(--muted2);background:var(--card);padding:0 2px;letter-spacing:-.3px;white-space:nowrap}
+.daycol{position:relative;border-left:1px solid var(--line2);min-height:56px}
+.daycol.we{background:#fcfcfd}
+.gridline{position:absolute;left:0;right:0;border-bottom:1px dashed var(--line2)}
+.ev{
+  position:absolute;left:1px;right:1px;border-radius:6px;padding:3px 4px;
+  font-size:11px;line-height:1.2;overflow:hidden;color:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);cursor:pointer;word-break:break-all;
+}
+.ev b{display:block;font-weight:600;font-size:11px;overflow:hidden;max-height:2.4em}
+.ev i{font-style:normal;font-size:10px;opacity:.92;display:block;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 极窄卡片里只留课程名，时间地点让位 */
+.ev.tiny{padding:2px 3px;font-size:10px}
+.ev.tiny i{display:none}
+.ev.tiny b{font-size:10px}
+.ev.exam{outline:2px solid #ffd43b;outline-offset:-2px}
+.ev.exam b::before{content:"★ "}
+.ev.course{background:var(--c-course)}
+.ev.gym{background:var(--c-gym)}
+.ev.exam{background:var(--c-exam)}
+.ev.activity{background:var(--c-activity)}
+.ev.todo{background:var(--c-todo)}
+/* 待办完成：整块变淡 + 文字加删除线 */
+.ev.todo.done{opacity:.45}
+.ev.todo.done b{text-decoration:line-through}
+/* 待办卡片上的勾选圆点 */
+.ev .todoBox{
+  position:absolute;top:2px;right:3px;width:14px;height:14px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.9);background:rgba(255,255,255,.22);
+  display:flex;align-items:center;justify-content:center;font-size:10px;
+  line-height:1;font-style:normal;
+}
+/* 同列表：用 visibility 控制，避免透明 ✓ 被当成 emoji 渲染成黑勾 */
+.ev .todoBox::before{content:"✓";visibility:hidden;line-height:1}
+.ev .todoBox.on{background:#fff}
+.ev .todoBox.on::before{visibility:visible;color:var(--c-todo);font-weight:700}
+.ev.tiny .todoBox{width:12px;height:12px;font-size:9px;top:1px;right:2px}
+.ev.moved{background-image:linear-gradient(45deg,rgba(255,255,255,.28) 25%,transparent 25%,
+  transparent 50%,rgba(255,255,255,.28) 50%,rgba(255,255,255,.28) 75%,transparent 75%);
+  background-size:8px 8px}
+
+/* ---------- 日视图 ---------- */
+.daylist{padding:10px 12px}
+.dayrow{
+  display:flex;gap:10px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:10px;margin-bottom:8px;align-items:flex-start;
+}
+.dayrow .bar{width:4px;border-radius:2px;align-self:stretch;flex:0 0 auto;min-height:34px}
+.dayrow .tm{flex:0 0 74px;font-size:12px;color:var(--muted);line-height:1.4}
+.dayrow .bd{flex:1;min-width:0}
+.dayrow .ttl{font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dayrow .meta{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-all}
+.tag{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--line2);color:var(--muted);
+  font-weight:500;flex:0 0 auto}
+.tag.t-exam{background:#ffe3e3;color:#c92a2a}
+.tag.t-gym{background:#e6fcf5;color:#0b7285}
+.tag.t-activity{background:#fff4e6;color:#d9480f}
+.tag.t-todo{background:#f8f0fc;color:#9c36b5}
+.tag.t-course{background:#edf2ff;color:#364fc7}
+.tag.t-move{background:#fff9db;color:#e67700}
+/* 待办列表项：整行可点勾选。未勾选时圆圈内不显示任何字符 */
+.li.todo-done .ttl{text-decoration:line-through;color:var(--muted2)}
+.li.todo-done .meta{opacity:.6}
+.li .todoTick{
+  flex:0 0 22px;width:22px;height:22px;border-radius:50%;border:2px solid #d0d5dd;
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent;
+  cursor:pointer;align-self:center;margin-right:2px;
+}
+/* 必须用 visibility 而不是 color:transparent —— 否则手机浏览器会把
+   透明的 ✓ 当成 emoji 渲染成黑勾，看起来像"已完成" */
+.li .todoTick::before{content:"✓";visibility:hidden;line-height:1}
+.li .todoTick.on{background:var(--c-todo);border-color:var(--c-todo)}
+.li .todoTick.on::before{visibility:visible;color:#fff}
+.empty{text-align:center;color:var(--muted2);padding:40px 20px;font-size:13px}
+
+/* ---------- 列表 ---------- */
+.sec{padding:12px}
+.sec h2{font-size:13px;color:var(--muted);margin:0 0 8px;font-weight:600}
+.li{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center;
+}
+.li .bar{width:4px;align-self:stretch;border-radius:2px;flex:0 0 auto}
+.li .bd{flex:1;min-width:0}
+.li .ttl{font-weight:600}
+.li .meta{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-all}
+
+/* ---------- 底部导航 ---------- */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);
+  border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);
+  padding-bottom:var(--sab);
+}
+nav button{padding:7px 0 8px;font-size:10px;color:var(--muted);display:flex;
+  flex-direction:column;align-items:center;gap:2px}
+nav button.on{color:var(--brand)}
+nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- 按钮 ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:9px 14px;border-radius:8px;background:var(--brand);color:#fff;
+  font-size:13px;font-weight:500;
+}
+.btn.ghost{background:var(--line2);color:var(--text)}
+.btn.danger{background:#fff5f5;color:#c92a2a;border:1px solid #ffc9c9}
+.btn:active{opacity:.8}
+.btn.block{width:100%}
+.btnrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btnrow .btn{flex:1;min-width:100px}
+.fab{
+  position:fixed;right:16px;bottom:calc(76px + var(--sab));z-index:35;
+  width:52px;height:52px;border-radius:50%;background:var(--brand);color:#fff;
+  font-size:26px;line-height:1;box-shadow:0 4px 14px rgba(76,110,245,.42);
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ---------- 弹层 ---------- */
+.mask{
+  position:fixed;inset:0;background:rgba(15,17,20,.45);z-index:50;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.mask.on{display:flex}
+.sheet{
+  background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;
+  border-radius:14px 14px 0 0;padding:14px 16px calc(18px + var(--sab));
+  -webkit-overflow-scrolling:touch;
+}
+.sheet h3{margin:2px 0 12px;font-size:16px;display:flex;align-items:center}
+.sheet h3 span{flex:1}
+.fld{margin-bottom:10px}
+.fld>label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.hint{font-size:11px;color:var(--muted2);margin-top:4px;line-height:1.45}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{
+  padding:6px 12px;border-radius:20px;background:var(--line2);font-size:12px;color:var(--muted);
+}
+.seg button.on{background:var(--brand);color:#fff}
+.daypick{display:flex;gap:6px}
+.daypick button{
+  flex:1;padding:7px 0;border-radius:8px;background:var(--line2);font-size:12px;color:var(--muted);
+}
+.daypick button.on{background:var(--brand);color:#fff}
+.preview{
+  background:var(--line2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted);
+  margin-bottom:10px;line-height:1.6;
+}
+.warn{background:#fff4e6;border:1px solid #ffd8a8;color:#d9480f;border-radius:8px;
+  padding:8px 10px;font-size:12px;margin-bottom:8px;white-space:pre-wrap}
+
+/* ---------- 作息表（一天几节课） ---------- */
+.ttcount{display:grid;grid-template-columns:46px 1fr 46px;gap:8px;align-items:center}
+.ttcount .btn{padding:8px 0}
+.ttrow{display:grid;grid-template-columns:88px 1fr 1fr;gap:6px;align-items:center;margin-bottom:6px}
+.ttno{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.ttno i{font-style:normal;font-size:10px;background:#fff4e6;color:#d9480f;
+  border-radius:4px;padding:0 4px;line-height:1.5}
+
+/* ---------- 今日视图小卡 ---------- */
+.today-hd{padding:14px 16px 4px}
+.today-hd .big{font-size:22px;font-weight:700}
+.today-hd .sub{font-size:12px;color:var(--muted);margin-top:2px}
+/* ---------- 使用说明（独立页面） ---------- */
+.doc{font-size:13px;line-height:1.62}
+.doc h4{margin:16px 0 6px;font-size:13.5px;font-weight:600;color:var(--brand);
+  scroll-margin-top:calc(56px + var(--sat))}
+.doc h4:first-child{margin-top:0}
+.doc p{margin:0 0 8px}
+.doc ol,.doc ul{margin:0 0 8px;padding-left:19px}
+.doc li{margin-bottom:4px}
+.doc code{background:var(--line2);border-radius:4px;padding:1px 5px;font-size:12px;
+  font-family:ui-monospace,Consolas,Menlo,monospace}
+.doc pre{background:var(--line2);border-radius:8px;padding:8px 10px;margin:0 0 8px;
+  font-size:12px;line-height:1.75;overflow-x:auto;white-space:pre;
+  font-family:ui-monospace,Consolas,Menlo,monospace}
+.doc .qa{margin:0 0 7px}
+.doc .qa b{display:block;font-weight:600}
+.doc .qa span{color:var(--muted)}
+.doc .tip{background:#edf2ff;border-radius:8px;padding:8px 10px;font-size:12px;
+  color:#364fc7;margin:0 0 10px}
+/* 说明页目录：长文里给个快速跳转 */
+.doc .toc{background:var(--line2);border-radius:8px;padding:10px 12px;margin:0 0 12px}
+.doc .toc .tb{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:3px}
+.doc .toc button{display:block;width:100%;text-align:left;font-size:12.5px;
+  color:var(--brand);padding:3px 0}
+/* 让 AI 转格式用的提示词：可纵向滚动，免得占满一屏 */
+.doc .copybox{margin:0 0 8px}
+.doc .copybox pre{margin-bottom:6px}
+.doc pre.prompt{max-height:250px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+/* 严重影响使用体验的重大说明：红色文字 + 红框警示条 */
+.doc .hot{color:#c92a2a;font-weight:500}
+.doc .hotbox{background:#fff5f5;border:1px solid #ffc9c9;border-radius:8px;
+  padding:8px 10px;font-size:12.5px;color:#a61e1e;margin:0 0 10px;line-height:1.7}
+.doc .hotbox b{color:#c92a2a}
+
+@media (min-width:720px){
+  .sheet{border-radius:14px;margin-bottom:auto;margin-top:auto}
+  .mask{align-items:center}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ============ 周视图 / 日视图 ============ -->
+<section class="page on" id="page-week">
+  <header>
+    <div class="hd">
+      <button class="iconbtn" id="prevBtn" title="上一周">‹</button>
+      <h1 id="hdTitle">本周</h1>
+      <button class="iconbtn" id="nextBtn" title="下一周">›</button>
+      <button class="iconbtn" id="todayBtn" title="回到今天">◉</button>
+    </div>
+    <div class="termbar" id="termBar"></div>
+    <div class="modebar">
+      <button id="mWeek" class="on">周视图</button>
+      <button id="mDay">日视图</button>
+    </div>
+  </header>
+  <div id="examBanner"></div>
+  <div id="weekWrap"></div>
+  <div id="dayWrap" style="display:none"></div>
+</section>
+
+<!-- ============ 课表 ============ -->
+<section class="page" id="page-course">
+  <header>
+    <div class="hd">
+      <span style="width:34px"></span>
+      <h1>我的课表</h1>
+      <button class="iconbtn" id="courseImportBtn" title="导入">⇩</button>
+    </div>
+    <div class="termbar"><span id="courseCount">0 门课程</span></div>
+  </header>
+  <div class="sec">
+    <div class="btnrow">
+      <button class="btn ghost" id="addCourseBtn">+ 手动添加课程</button>
+      <button class="btn ghost" id="pasteCourseBtn">批量粘贴录入</button>
+    </div>
+  </div>
+  <div class="sec" id="courseList" style="padding-top:0"></div>
+</section>
+
+<!-- ============ 计划 ============ -->
+<section class="page" id="page-plan">
+  <header>
+    <div class="hd">
+      <span style="width:34px"></span>
+      <h1>个人计划</h1>
+      <button class="iconbtn" id="addPlanBtn" title="添加">+</button>
+    </div>
+    <div class="termbar"><span id="planCount">0 项</span></div>
+  </header>
+  <div class="sec" style="padding-bottom:0">
+    <div class="seg" id="planFilter">
+      <button class="on" data-f="all">全部</button>
+      <button data-f="todo">待办</button>
+      <button data-f="gym">健身</button>
+      <button data-f="exam">考试</button>
+      <button data-f="activity">活动</button>
+    </div>
+  </div>
+  <div class="sec" id="planList"></div>
+</section>
+
+<!-- ============ 使用说明（独立页面） ============ -->
+<section class="page" id="page-help">
+  <header>
+    <div class="hd">
+      <span style="width:34px"></span>
+      <h1>使用说明</h1>
+      <span style="width:34px"></span>
+    </div>
+  </header>
+
+  <div class="sec">
+    <div class="doc">
+
+      <div class="tip">课表和计划放在同一张周视图里。<b>数据只存在你这台设备上</b>：
+      不上传、不用登录，别人看不到你的，你也看不到别人的。下面从「能做什么」讲到「怎么录自己的课」，
+      按顺序看一遍，十分钟就能用顺手。</div>
+
+      <div class="toc">
+        <div class="tb">目录（点一下跳转）</div>
+        <button data-goto="h-features">一、这款 App 能做什么</button>
+        <button data-goto="h-pages">二、五个页面分别管什么</button>
+        <button data-goto="h-install">三、装到手机桌面</button>
+        <button data-goto="h-course">四、录入你自己的课表（三种方式）</button>
+        <button data-goto="h-ai">五、懒人捷径：让 AI 帮你转格式</button>
+        <button data-goto="h-daily">六、日常使用：新增 / 编辑 / 删除</button>
+        <button data-goto="h-backup">七、备份 / 换手机</button>
+        <button data-goto="h-faq">八、常见问题</button>
+      </div>
+
+      <h4 id="h-features">一、这款 App 能做什么</h4>
+      <ul>
+        <li><b>一张周视图看全周</b>：上课、健身、考试、待办、活动，按类型用不同颜色区分，一眼看清。</li>
+        <li><b>纯本地、免登录</b>：不用注册、不用联网；装到桌面后断网也能打开。</li>
+        <li><b>录入不难</b>：一行一门课就能批量导入；也能导入 WakeUp 备份，或者让 AI 帮你把课表转成它的格式。</li>
+        <li><b>数据能带走</b>：导出 JSON 备份换手机，导出 ICS 塞进系统日历（由系统负责提醒）。</li>
+        <li><b>该有的都有</b>：首页考试倒计时横幅、待办勾选、按周重复的事项。</li>
+      </ul>
+
+      <h4 id="h-pages">二、五个页面分别管什么</h4>
+      <ul>
+        <li><b>日历</b>：主视图。顶部可切「周视图 / 日视图」；点空白格 = 新建，点已有卡片 = 编辑；左右滑动 = 切周。</li>
+        <li><b>课表</b>：管理课程本身 —— 手动添加、编辑、删除、<b>批量粘贴录入</b>、导入导出课表。</li>
+        <li><b>计划</b>：四类个人事项 —— <b>待办</b>（可勾选）/ <b>健身</b> / <b>考试</b>（自动倒计时）/ <b>活动</b>。</li>
+        <li><b>说明</b>：就是本页。</li>
+        <li><b>设置</b>：学期起始日、总周数、作息时间表、备份与恢复、清空数据。</li>
+      </ul>
+
+      <h4 id="h-install">三、装到手机桌面</h4>
+      <p>装到桌面后是<b>全屏无地址栏</b>的，能离线打开，也更像原生 App。建议第一步就做。</p>
+      <ul>
+        <li><b>Android</b>：浏览器菜单 <code>⋮</code> →「安装应用」/「添加到主屏幕」。</li>
+        <li><b>iPhone</b>：<span class="hot">必须用 Safari</span> → 底部「分享」→「添加到主屏幕」。
+        <br>（微信里打开加不了：先点右上角 <code>···</code> →「在浏览器中打开」，再用 Safari 加）</li>
+      </ul>
+
+      <h4 id="h-course">四、录入你自己的课表（三种方式）</h4>
+      <div class="hotbox"><b>！这一步不做，App 等于没法用</b> —— 不先设「学期起始日」，
+      所有课的<b>周次、单双周、考试倒计时全都会错</b>。请先去「设置」把学期起始日改成
+      你们学校<b>第 1 周的星期一</b>（几月几号），确认无误再录课。</div>
+      <p><b>顺序别搞反</b>，先做前两步：</p>
+      <ol>
+        <li>「设置」→ <b>学期起始日</b> 改成你们学校<b>第 1 周的星期一</b>。
+        <br>（填错了所有周次、单双周都会歪，务必先确认这一步）</li>
+        <li>「设置」→ <b>清空所有数据</b>，清掉预置的示例课表（作息时间表会保留）。</li>
+      </ol>
+
+      <div class="tip"><b>节次和上下课时间，按你们学校的来。</b>
+      每个学校一天几节课、几点上课都不一样，所以「设置 → <b>上课时间表</b>」里可以
+      <b>加/减一天几节课</b>、改每一节的时间。如果你的课排在第 11-13 节这种晚课，
+      把「一天几节课」加上去、再把时间改成你们学校的即可。
+      就算忘了改，App 也会照你的作息节奏<b>自动补齐节次</b>（不会把第 11 节的课画到第 1 节去），
+      只是推算出来的时间需要你去核对一下。</div>
+
+      <p><b>方式 1 · 手动添加</b><br>
+      课表页 →「+ 手动添加课程」，逐项填写。课不多时最直观。</p>
+
+      <p><b>方式 2 · 批量粘贴（推荐）</b><br>
+      课表页 →「批量粘贴录入」，<b>一行一门课</b>，每行的格式是：</p>
+      <pre>课程名 周几 第几节-第几节 周次 地点</pre>
+      <pre>高等数学 周一 1-2节 1-16周 教三201
+大学英语 周三 3-4节 单周 外语楼A101
+体育 周五 5-6节 1-18周 操场</pre>
+      <ul>
+        <li>周几写 <code>周一</code>～<code>周日</code>；节次写 <code>1-2节</code>、<code>3-4节</code> 这种。</li>
+        <li>周次写 <code>1-16周</code>；只有单周写 <code>单周</code>，只有双周写 <code>双周</code>；周次不连续就拆成几行。</li>
+        <li>地点可以省略；同一门课一周上多次，每次单独一行。</li>
+        <li>不确定就先点「先检查一下」，它会告诉你哪几行没认出来，改完再导入。</li>
+      </ul>
+
+      <p><b>方式 3 · 导入 WakeUp 课表</b><br>
+      如果你在用 WakeUp 这类 App，先在它里面「导出为备份」，拿到 <code>.wakeup_schedule</code> 文件，
+      再来「设置 → 导入 WakeUp 课表」选它即可。</p>
+
+      <h4 id="h-ai">五、懒人捷径：让 AI 帮你转格式</h4>
+      <p>手里只有课表的<b>截图 / PDF / Excel</b>，懒得手动敲？把下面这段话连同你的课表一起发给任意一个 AI
+      （豆包、Kimi、DeepSeek、ChatGPT 都行），它会把课表整理成上面那种「一行一门课」的文本，
+      你复制回来粘进「批量粘贴录入」就能用。</p>
+      <div class="copybox">
+        <pre id="aiPrompt" class="prompt">你是一个课表整理助手。下面我会给你一份大学课表（可能是截图里的文字、Excel 粘贴的内容或表格）。
+请把它整理成「一行一门课」的纯文本，除此之外不要输出任何解释。
+
+每行的格式是：
+课程名 周几 第几节-第几节 周次 地点
+
+规则：
+- 周几只能写：周一 周二 周三 周四 周五 周六 周日
+- 节次写成「1-2节」「3-4节」这种，连着上的节次用 - 连起来
+- 周次写「1-16周」；只有单周写「单周」，只有双周写「双周」；周次不连续就拆成几行
+- 一门课一周上多次，每次单独一行
+- 地点有就写、没有就省略
+- 只输出这些行，不要标题、不要编号、不要解释
+
+示例输出：
+高等数学 周一 1-2节 1-16周 教三201
+大学英语 周三 3-4节 单周 外语楼A101
+
+我的课表如下：
+【在这里粘贴你的课表内容】</pre>
+        <button class="btn ghost block" id="copyAiPrompt">复制这段话</button>
+      </div>
+      <div class="hint" style="margin-bottom:12px">复制后，把 AI 给你的结果整段粘进「课表 → 批量粘贴录入」，
+      先点「先检查一下」核对无误，再导入。</div>
+
+      <p><b>更快的一条路：让 AI 直接转成 .ics 文件（推荐）</b><br>
+      上面那条要复制两回文字，这条只需要一个文件，点几下就完事：</p>
+      <ol>
+        <li>把你的课表<b>截图</b>（或 Excel、PDF 文件）发给任意一个 AI —— 豆包、Kimi、DeepSeek、ChatGPT 都行。</li>
+        <li>复制下面这段话，也发给它。</li>
+        <li>它会回你一大段以 <code>BEGIN:VCALENDAR</code> 开头、<code>END:VCALENDAR</code> 结尾的文字，
+            这就是 .ics 文件的全部内容，<b>整段复制</b>。</li>
+        <li>把这段文字<b>存成文件</b>（文件名随意，但扩展名必须是 <code>.ics</code>）：
+          <ul>
+            <li><b>电脑</b>：右键新建文本文档 → 粘贴进去 → 另存为 <code>course.ics</code>（保存类型选「所有文件」）。</li>
+            <li><b>手机</b>：粘进备忘录或 WPS，导出／分享时把文件名改成 <code>course.ics</code>；
+                实在改不了扩展名，就把内容发到电脑上再存。</li>
+          </ul></li>
+        <li>回到本 App：「设置」→「导入 / 恢复」→ 点「<b>导入 ICS</b>」，选中刚存的文件。</li>
+        <li>导入后到周视图扫一眼；上课时间不对就去「设置 → 上课时间表」调整。</li>
+      </ol>
+      <div class="copybox">
+        <pre id="aiPromptIcs" class="prompt">你是一个课表转换助手。下面我会给你我的大学课表（可能是截图、Excel 或 PDF 里的内容），
+请把它转换成标准的 iCalendar（.ics）日历文件内容，输出从 BEGIN:VCALENDAR 开始、
+到 END:VCALENDAR 结束的纯文本，除此之外不要输出任何解释。
+
+我这边的基本信息（换算日期和时间都必须基于它们）：
+- 本学期第 1 周的星期一是：【填日期，例如 2026-09-14】
+- 每节课的上下课时间：【照你们学校的作息填，例如：第1节 08:00-08:45，第2节 08:55-09:40，第3节 10:00-10:45……】
+
+转换规则：
+- 每门课的每个上课时段，输出一个 VEVENT
+- DTSTART 写这门课「第一次上课」那天的日期 + 该节次的开始时间；DTEND 写该节次的结束时间
+- 用 RRULE:FREQ=WEEKLY;UNTIL=... 表示上到第几周，UNTIL 取最后一周那次课的日期（宁多一天、别少一天）
+- 只有单周的课：RRULE 里加 INTERVAL=2，DTSTART 从第 1 周算起
+- 只有双周的课：RRULE 里加 INTERVAL=2，DTSTART 从第 2 周算起
+- SUMMARY 写课程名，LOCATION 写地点，DESCRIPTION 可写「第X-Y节」
+- 时间写成 20260914T080000 这种格式（本地时间即可，不用加时区）
+
+只输出 .ics 文件内容，不要任何解释。
+
+我的课表如下：
+【在这里粘贴你的课表内容】</pre>
+        <button class="btn ghost block" id="copyAiPromptIcs">复制这段话</button>
+      </div>
+      <div class="hint" style="margin-bottom:12px">提示词里的两处【】记得先改成你自己的学期起始日和每节课时间，AI 才能算对。
+      万一它算错了日期或时间：导入后可到「设置 → 上课时间表」微调，或改用上面的「一行一门课」方式，两条路是通的。</div>
+
+      <h4 id="h-daily">六、日常使用：新增 / 编辑 / 删除</h4>
+      <ul>
+        <li><b>新增</b>：周视图点空白格；或点右下角 <code>+</code>；或各列表页右上角的 <code>+</code>。</li>
+        <li><b>编辑</b>：点任意一张卡片 / 列表项，弹出编辑层改内容。</li>
+        <li><b>删除</b>：打开编辑层，拉到底点「删除」。</li>
+        <li><b>待办</b>：点左侧圆圈就能勾掉；设置成每周重复的待办，这周勾了不影响下周。</li>
+        <li><b>考试</b>：录入考试日期后，首页顶部会自动出现倒计时横幅。</li>
+        <li><b>临时调课</b>：某一次课换时间或地点，进课程编辑后对该次单独调整，不影响整学期。</li>
+      </ul>
+
+      <h4 id="h-backup">七、备份 / 换手机</h4>
+      <div class="hotbox"><b>！数据只存在你这台设备的浏览器里</b> ——
+      换手机、换浏览器、清缓存、卸载，都可能让它<b>全部丢失且无法找回</b>。
+      换手机、换学期前，务必「设置」→「<b>导出 JSON 备份</b>」，把文件存网盘或发给自己。</div>
+      <ul>
+        <li>「设置」→「<b>导出 JSON 备份</b>」，把文件存网盘或发给自己。</li>
+        <li>换新设备：打开同一个链接 →「设置」→「<b>恢复 JSON 备份</b>」，选那个文件即可。</li>
+        <li>想把课表放进系统日历（获得可靠提醒）：「设置」→「<b>导出 ICS</b>」。</li>
+      </ul>
+
+      <h4 id="h-faq">八、常见问题</h4>
+      <div class="qa"><b>加到桌面了，打开还有地址栏？</b>
+      <span>多半加成了书签。删掉重来，改用浏览器菜单里的「添加到主屏幕」。</span></div>
+      <div class="qa"><b>周次 / 单双周显示不对？</b>
+      <span>「设置」里的学期起始日填错了，改成第 1 周的星期一即可。</span></div>
+      <div class="qa"><b>想要到点提醒我，该怎么做？</b>
+      <span>本 App 不弹系统通知（网页的提醒不可靠，会被浏览器杀掉）。要提醒就把课表
+      「设置 → <b>导出 ICS 日历</b>」导进手机自带日历，让系统日历负责提醒——那才是可靠的。
+       App 内的考试倒计时横幅、待办勾选不受影响。</span></div>
+      <div class="qa"><b>能同步到电脑或别人手机吗？</b>
+      <span>不能。每个人的数据各自存在自己设备里，互不相通 —— 这也正是它不用登录、不会泄露的原因。</span></div>
+      <div class="qa"><b>换学期了怎么办？</b>
+      <span>「设置」改学期起始日与总周数；旧课表可先「导出 JSON 备份」留底，再清空重录。</span></div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ 设置 ============ -->
+<section class="page" id="page-set">
+  <header>
+    <div class="hd"><span style="width:34px"></span><h1>设置与数据</h1><button class="iconbtn" data-help title="使用说明">?</button></div>
+  </header>
+
+  <div class="sec">
+    <h2>学期设置</h2>
+    <div class="fld">
+      <label>第 1 周 星期一（学期起始日）</label>
+      <input type="date" id="setTermStart">
+      <div class="hint">所有"第 X 周"都以这一天为基准推算。改这里会整体平移教学周。</div>
+    </div>
+    <div class="fld">
+      <label>学期总周数</label>
+      <input type="number" id="setTotalWeeks" min="1" max="30">
+    </div>
+    <div class="fld">
+      <label>课表名称</label>
+      <input type="text" id="setTableName" placeholder="如：2026 秋季学期">
+    </div>
+    <div class="fld">
+      <label>显示周末</label>
+      <div class="seg" id="setWe">
+        <button data-v="1">显示</button><button data-v="0">隐藏</button>
+      </div>
+    </div>
+    <button class="btn block" id="saveSettingsBtn">保存设置</button>
+  </div>
+
+  <div class="sec">
+    <h2>上课时间表（节次 → 时间）</h2>
+    <div class="fld">
+      <label>一天几节课</label>
+      <div class="ttcount">
+        <button class="btn ghost" id="ttMinus" title="减少一节">−</button>
+        <input type="number" id="ttCount" min="1" max="24">
+        <button class="btn ghost" id="ttPlus" title="增加一节">＋</button>
+      </div>
+      <div class="hint" id="ttHint"></div>
+    </div>
+    <div id="ttList"></div>
+    <div class="hint">序号就是"第几节"，课程的起止时间由节次推出。加减节次或改时间，全课表同步更新。</div>
+  </div>
+
+  <div class="sec">
+    <h2>导出备份</h2>
+    <div class="hint" style="margin-bottom:8px">
+      换手机、换学期前请务必导出一次。JSON 用于本 App 完整恢复，ICS 可导入系统日历 / Google / 苹果日历。
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="exportJsonBtn">导出 JSON 备份</button>
+      <button class="btn ghost" id="exportIcsBtn">导出 ICS 日历</button>
+    </div>
+    <div class="fld" style="margin-top:10px">
+      <label>导出 ICS 的范围</label>
+      <div class="row2">
+        <input type="date" id="icsFrom">
+        <input type="number" id="icsWeeks" value="20" min="1" max="30" title="周数">
+      </div>
+      <div class="hint">从该日期所在周起，往后导出指定周数。</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>导入 / 恢复</h2>
+    <div class="btnrow">
+      <button class="btn ghost" id="importWakeBtn">导入 WakeUp 课表</button>
+      <button class="btn ghost" id="importIcsBtn">导入 ICS</button>
+      <button class="btn ghost" id="importJsonBtn">恢复 JSON 备份</button>
+    </div>
+    <div class="hint">支持 .wakeup_schedule（WakeUp「导出为备份」）、.ics、以及本 App 导出的 .json。<br>
+    没有现成文件？把课表<b>截图</b>发给你的 AI（豆包 / Kimi / DeepSeek 都行），说「帮我转成 .ics 日历文件」，
+    把它给的内容存成 <b>course.ics</b> 再点上方「导入 ICS」。手把手教程见底部「说明」页。</div>
+  </div>
+
+  <div class="sec">
+    <h2>帮助</h2>
+    <button class="btn ghost block" data-help>查看使用说明</button>
+    <div class="hint">产品功能、各模块怎么用、怎么录自己的课、批量导入、备份换机、常见问题，都在这里。</div>
+  </div>
+
+  <div class="sec">
+    <h2>危险操作</h2>
+    <button class="btn danger block" id="clearAllBtn">清空所有数据</button>
+  </div>
+
+  <div class="sec" style="text-align:center;color:var(--muted2);font-size:11px;padding-bottom:24px">
+    课表日历 · 纯本地存储，数据不出设备
+  </div>
+</section>
+
+</div>
+
+<button class="fab" id="fab">+</button>
+
+<nav>
+  <button class="on" data-p="week">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>日历</button>
+  <button data-p="course">
+    <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>课表</button>
+  <button data-p="plan">
+    <svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>计划</button>
+  <button data-p="help">
+    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 7h7M9 11h7"/></svg>说明</button>
+  <button data-p="set">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.6 1.6 0 008 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H2a2 2 0 110-4h.1A1.6 1.6 0 004.6 8a1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V2a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H22a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/></svg>设置</button>
+</nav>
+
+<!-- ============ 通用弹层 ============ -->
+<div class="mask" id="mask"><div class="sheet" id="sheet"></div></div>
+<input type="file" id="filePicker" style="display:none">
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

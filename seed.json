@@ -1,0 +1,190 @@
+{
+  "version": 1,
+  "settings": {
+    "termStart": "2026-09-14",
+    "totalWeeks": 18,
+    "showWeekend": true,
+    "tableName": "示例课表（可清空）",
+    "timeTable": [
+      { "start": "08:00", "end": "08:45" },
+      { "start": "08:50", "end": "09:35" },
+      { "start": "09:50", "end": "10:35" },
+      { "start": "10:40", "end": "11:25" },
+      { "start": "11:30", "end": "12:15" },
+      { "start": "13:00", "end": "13:45" },
+      { "start": "13:50", "end": "14:35" },
+      { "start": "14:50", "end": "15:35" },
+      { "start": "15:40", "end": "16:25" },
+      { "start": "16:30", "end": "17:15" },
+      { "start": "18:00", "end": "18:45" },
+      { "start": "18:50", "end": "19:35" },
+      { "start": "19:40", "end": "20:25" },
+      { "start": "20:30", "end": "21:15" }
+    ],
+    "reminderEnabled": true,
+    "defaultReminder": 15
+  },
+  "courses": [
+    {
+      "id": "c_demo_0",
+      "name": "高等数学A",
+      "teacher": "张明",
+      "location": "教一101",
+      "color": "#4c6ef5",
+      "sessions": [
+        {
+          "id": "s_0_0",
+          "day": 1,
+          "startNode": 1,
+          "endNode": 2,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "all",
+          "location": "教一101",
+          "teacher": "张明"
+        },
+        {
+          "id": "s_0_1",
+          "day": 3,
+          "startNode": 3,
+          "endNode": 4,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "all",
+          "location": "教一101",
+          "teacher": "张明"
+        },
+        {
+          "id": "s_0_2",
+          "day": 5,
+          "startNode": 1,
+          "endNode": 2,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "all",
+          "location": "教一101",
+          "teacher": "张明"
+        }
+      ],
+      "overrides": []
+    },
+    {
+      "id": "c_demo_1",
+      "name": "大学英语",
+      "teacher": "李静",
+      "location": "外语楼B203",
+      "color": "#d6336c",
+      "sessions": [
+        {
+          "id": "s_1_0",
+          "day": 2,
+          "startNode": 3,
+          "endNode": 4,
+          "startWeek": 1,
+          "endWeek": 15,
+          "weekType": "odd",
+          "location": "外语楼B203",
+          "teacher": "李静"
+        }
+      ],
+      "overrides": []
+    },
+    {
+      "id": "c_demo_2",
+      "name": "程序设计基础",
+      "teacher": "王浩",
+      "location": "计算机楼机房A",
+      "color": "#e8590c",
+      "sessions": [
+        {
+          "id": "s_2_0",
+          "day": 2,
+          "startNode": 6,
+          "endNode": 7,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "all",
+          "location": "计算机楼机房A",
+          "teacher": "王浩"
+        },
+        {
+          "id": "s_2_1",
+          "day": 4,
+          "startNode": 6,
+          "endNode": 7,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "even",
+          "location": "计算机楼机房A",
+          "teacher": "王浩"
+        }
+      ],
+      "overrides": []
+    },
+    {
+      "id": "c_demo_3",
+      "name": "大学物理",
+      "teacher": "刘芳",
+      "location": "理教205",
+      "color": "#1098ad",
+      "sessions": [
+        {
+          "id": "s_3_0",
+          "day": 4,
+          "startNode": 1,
+          "endNode": 2,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "all",
+          "location": "理教205",
+          "teacher": "刘芳"
+        }
+      ],
+      "overrides": []
+    },
+    {
+      "id": "c_demo_4",
+      "name": "体育（篮球）",
+      "teacher": "陈刚",
+      "location": "体育馆",
+      "color": "#12b886",
+      "sessions": [
+        {
+          "id": "s_4_0",
+          "day": 5,
+          "startNode": 5,
+          "endNode": 6,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "all",
+          "location": "体育馆",
+          "teacher": "陈刚"
+        }
+      ],
+      "overrides": []
+    },
+    {
+      "id": "c_demo_5",
+      "name": "中国近现代史纲要",
+      "teacher": "赵磊",
+      "location": "教学三楼301",
+      "color": "#f59f00",
+      "sessions": [
+        {
+          "id": "s_5_0",
+          "day": 3,
+          "startNode": 6,
+          "endNode": 7,
+          "startWeek": 1,
+          "endWeek": 16,
+          "weekType": "all",
+          "location": "教学三楼301",
+          "teacher": "赵磊"
+        }
+      ],
+      "overrides": []
+    }
+  ],
+  "events": [],
+  "updatedAt": "2026-10-12T00:00:00.000Z"
+}
